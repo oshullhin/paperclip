@@ -57,10 +57,27 @@ export function deriveAuthCookiePrefix(instanceId = resolvePaperclipInstanceId()
   return `paperclip-${scopedInstanceId}`;
 }
 
-export function buildBetterAuthAdvancedOptions(input: { disableSecureCookies: boolean }) {
+// Comma-separated request headers Better Auth reads the client IP from, for
+// rate limiting. Only name a header the platform's edge sets itself (for
+// example Railway's `x-real-ip`); a header clients can send is spoofable.
+export function parseAuthIpAddressHeaders(raw: string | undefined): string[] {
+  return (raw ?? "")
+    .split(",")
+    .map((header) => header.trim().toLowerCase())
+    .filter((header) => header.length > 0);
+}
+
+export function buildBetterAuthAdvancedOptions(input: {
+  disableSecureCookies: boolean;
+  ipAddressHeaders?: string | undefined;
+}) {
+  const ipAddressHeaders = parseAuthIpAddressHeaders(
+    input.ipAddressHeaders ?? process.env.PAPERCLIP_AUTH_IP_ADDRESS_HEADERS,
+  );
   return {
     cookiePrefix: deriveAuthCookiePrefix(),
     ...(input.disableSecureCookies ? { useSecureCookies: false } : {}),
+    ...(ipAddressHeaders.length > 0 ? { ipAddress: { ipAddressHeaders } } : {}),
   };
 }
 

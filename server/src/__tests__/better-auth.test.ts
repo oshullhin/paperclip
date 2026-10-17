@@ -50,6 +50,22 @@ describe("Better Auth cookie scoping", () => {
     } as BetterAuthOptions).sessionToken.name).toBe("paperclip-pap-worktree.session_token");
   });
 
+  it("reads the client IP from the configured edge headers", () => {
+    process.env.PAPERCLIP_INSTANCE_ID = "edge-ip";
+
+    expect(buildBetterAuthAdvancedOptions({
+      disableSecureCookies: false,
+      ipAddressHeaders: " X-Real-IP , ,cf-connecting-ip",
+    })).toEqual({
+      cookiePrefix: "paperclip-edge-ip",
+      ipAddress: { ipAddressHeaders: ["x-real-ip", "cf-connecting-ip"] },
+    });
+    expect(buildBetterAuthAdvancedOptions({
+      disableSecureCookies: false,
+      ipAddressHeaders: "",
+    })).toEqual({ cookiePrefix: "paperclip-edge-ip" });
+  });
+
   it("enables Better Auth rate limiting for authenticated private instances by default", () => {
     expect(buildBetterAuthRateLimitOptions({
       deploymentMode: "authenticated",
